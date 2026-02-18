@@ -126,22 +126,25 @@ db-pump.exe fill --dry-run
 You can run DB Pump without a `db-pump.yaml` file by providing connection details directly via flags.
 
 ```bash
+```bash
 # MySQL
+# DSN Format: user:password@tcp(host:port)/dbname
+# JDBC Equivalent: jdbc:mysql://host:port/dbname
 ./db-pump fill --dsn "root:password@tcp(localhost:3306)/dbname" --driver mysql
 
 # PostgreSQL
+# DSN Format: postgres://user:password@host:port/dbname?sslmode=disable
+# JDBC Equivalent: jdbc:postgresql://host:port/dbname
 ./db-pump fill --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable" --driver postgres
 
 # MSSQL (SQL Server)
-# Standard DSN
+# DSN Format: sqlserver://user:password@host:port?database=dbname
+# JDBC Equivalent: jdbc:sqlserver://host:port;databaseName=dbname
 ./db-pump fill --dsn "sqlserver://sa:password@localhost:1433?database=dbname" --driver sqlserver
-# JDBC/ADODB Style (Useful for legacy configs, converted internally if driver supports or requires specific format)
-# Note: Go drivers typically require their own DSN format (URL style). 
-# For MSSQL, typical JDBC URL: jdbc:sqlserver://localhost:1433;databaseName=dbname
-# DB Pump supports standard Go driver URLs.
 
 # Oracle
-# Standard DSN
+# DSN Format: oracle://user:password@host:port/service_name
+# JDBC Equivalent: jdbc:oracle:thin:@host:port:service_name
 ./db-pump fill --dsn "oracle://user:password@localhost:1521/service" --driver oracle
 ```
 
