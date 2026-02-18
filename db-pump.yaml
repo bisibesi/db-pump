@@ -1,0 +1,21 @@
+databases:
+  - name: "Local MySQL"
+    driver: "mysql"
+    dsn: "root:root@tcp(127.0.0.1:3306)/sakila?parseTime=true"
+    active: true 
+    
+  - name: "Local PostgreSQL"
+    driver: "postgres"
+    dsn: "postgres://root:root@localhost:5432/sakila?sslmode=disable"
+    active: false
+
+  - name: "Local Oracle XE"
+    driver: "oracle"
+    # DSN 형식: oracle://유저:비번@주소:포트/서비스이름
+    dsn: "oracle://PUMP_USER:PumpPass1!@localhost:1521/FREEPDB1"
+    active: false
+
+settings:
+  default_count: 1000
+  language: "ko"
+  tables: [] # Empty means all tables. Example: ["actor", "city"]
