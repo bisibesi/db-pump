@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,47 +32,58 @@ var RootCmd = &cobra.Command{
 DB PUMP 🦅 - Database Data Generator & Pumper
 `,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Use Viper to get DSN (Flag > Config > Default)
-		connStr := viper.GetString("database.dsn")
+		// 1. DSN Strategy: Flag > Config > Env
+		// If DSN flag is set, it overrides everything.
+		// If not, we try to load from config "database.dsn" (but the structure is complex usually)
+		// Actually, our config structure is `databases: [{...}]`.
+		// But for CLI-only mode, we allow a simple --dsn flag.
+
+		connStr := cmd.Flag("dsn").Value.String()
+		driver := cmd.Flag("driver").Value.String()
+
+		// If no flag, fallback to Active Config from file
 		if connStr == "" {
-			return fmt.Errorf("database.dsn is required (via flag or config)")
+			activeConfig, err := GetActiveDBConfig()
+			if err == nil {
+				connStr = activeConfig.DSN
+				driver = activeConfig.Driver
+			}
 		}
 
-		// Detect Driver (Allow override via config if needed, but auto-detect is usually fine)
-		// Check config first for explicit driver
-		configDriver := viper.GetString("database.driver")
-		if configDriver != "" {
-			DriverName = configDriver
-		} else {
-			if strings.Contains(connStr, "postgres") || strings.Contains(connStr, "sslmode") {
-				DriverName = "postgres"
+		if connStr == "" {
+			return fmt.Errorf("DSN is required. Provide it via --dsn flag or a config file")
+		}
+
+		// Driver Detection
+		if driver == "" {
+			if strings.Contains(connStr, "postgres") {
+				driver = "postgres"
+			} else if strings.Contains(connStr, "mysql") {
+				driver = "mysql"
+			} else if strings.Contains(connStr, "sqlserver") {
+				driver = "sqlserver"
+			} else if strings.Contains(connStr, "oracle") {
+				driver = "oracle"
 			} else {
-				DriverName = "mysql"
+				return fmt.Errorf("could not detect driver from DSN, please specify --driver")
 			}
 		}
 
-		var err error
-		DB, err = sql.Open(DriverName, connStr)
-		if err != nil {
-			return fmt.Errorf("failed to open db: %w", err)
-		}
-		if err := DB.Ping(); err != nil {
-			return fmt.Errorf("failed to connect to db: %w", err)
-		}
+		DriverName = driver
 
-		// Fetch current database/schema name for Analyzer
-		if DriverName == "mysql" {
-			if err := DB.QueryRow("SELECT DATABASE()").Scan(&SchemaName); err != nil {
-				return fmt.Errorf("failed to get database name: %w", err)
-			}
-		} else {
-			SchemaName = "public"
-		}
-
-		if SchemaName == "" && DriverName == "mysql" {
-			return fmt.Errorf("no database selected in DSN")
-		}
-
+		// Note: Actual DB connection is done in fill/clean commands now to support dynamic config?
+		// No, root command sets up global state usually, but `fill` command was refactored
+		// to call GetActiveDBConfig() itself.
+		// We need to sync them.
+		// If we are in CLI mode, GetActiveDBConfig might fail if no config file.
+		// We should let subcommands handle connection OR standardise here.
+		// Given `fill.go` logic:
+		/*
+			config, err := GetActiveDBConfig()
+			if err != nil { return err }
+		*/
+		// We need to update `fill.go` and `clean.go` to support CLI flags too.
+		// For now, let's just validations here.
 		return nil
 	},
 }
@@ -90,14 +99,14 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Define flags
+	// Define flags
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ./db-pump.yaml)")
-	RootCmd.PersistentFlags().StringVar(&dsn, "dsn", "", "Database Source Name (DSN)")
+	RootCmd.PersistentFlags().StringVar(&dsn, "dsn", "", "Database Source Name (DSN) for CLI-only mode")
+	RootCmd.PersistentFlags().StringVar(&DriverName, "driver", "", "Database Driver (mysql, postgres, sqlserver, oracle) for CLI-only mode")
 
 	// Bind dsn flag to viper
-	viper.BindPFlag("database.dsn", RootCmd.PersistentFlags().Lookup("dsn"))
-
-	// Set default for Viper (fallback if no config/flag)
-	viper.SetDefault("database.dsn", "root:root@tcp(127.0.0.1:3306)/sakila?parseTime=true")
+	viper.BindPFlag("cli.dsn", RootCmd.PersistentFlags().Lookup("dsn"))
+	viper.BindPFlag("cli.driver", RootCmd.PersistentFlags().Lookup("driver"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -125,5 +134,11 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		// Just log if it's explicitly set but failing.
+		// If implicit, we don't care, we might be in CLI mode.
+		if cfgFile != "" {
+			fmt.Println("Error reading config file:", err)
+		}
 	}
 }

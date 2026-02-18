@@ -121,6 +121,26 @@ db-pump.exe fill --clean
 db-pump.exe fill --dry-run
 ```
 
+### 6. CLI 전용 모드 (설정 파일 없음)
+
+`db-pump.yaml` 파일 없이 플래그를 통해 직접 연결 정보를 입력하여 실행할 수 있습니다.
+
+```bash
+# MySQL
+./db-pump fill --dsn "root:password@tcp(localhost:3306)/dbname" --driver mysql
+
+# PostgreSQL
+./db-pump fill --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable" --driver postgres
+
+# MSSQL (SQL Server)
+# 표준 DSN
+./db-pump fill --dsn "sqlserver://sa:password@localhost:1433?database=dbname" --driver sqlserver
+
+# Oracle
+# 표준 DSN
+./db-pump fill --dsn "oracle://user:password@localhost:1521/service" --driver oracle
+```
+
 ---
 
 ## 📝 지원 데이터베이스 & 드라이버

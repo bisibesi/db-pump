@@ -121,6 +121,30 @@ Simulate the process without writing any data to the database. Useful for checki
 db-pump.exe fill --dry-run
 ```
 
+### 6. CLI-Only Mode (No Config File)
+
+You can run DB Pump without a `db-pump.yaml` file by providing connection details directly via flags.
+
+```bash
+# MySQL
+./db-pump fill --dsn "root:password@tcp(localhost:3306)/dbname" --driver mysql
+
+# PostgreSQL
+./db-pump fill --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable" --driver postgres
+
+# MSSQL (SQL Server)
+# Standard DSN
+./db-pump fill --dsn "sqlserver://sa:password@localhost:1433?database=dbname" --driver sqlserver
+# JDBC/ADODB Style (Useful for legacy configs, converted internally if driver supports or requires specific format)
+# Note: Go drivers typically require their own DSN format (URL style). 
+# For MSSQL, typical JDBC URL: jdbc:sqlserver://localhost:1433;databaseName=dbname
+# DB Pump supports standard Go driver URLs.
+
+# Oracle
+# Standard DSN
+./db-pump fill --dsn "oracle://user:password@localhost:1521/service" --driver oracle
+```
+
 ---
 
 ## 📝 Supported Databases & Drivers

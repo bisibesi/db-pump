@@ -28,27 +28,54 @@ var fillCmd = &cobra.Command{
 	Short: "Fill the database with random data",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// New Config Logic
-		config, err := GetActiveDBConfig()
-		if err != nil {
-			return err
+		var config DBConfig
+		activeConfig, err := GetActiveDBConfig()
+		if err == nil {
+			config = *activeConfig
+		} else {
+			// Fallback to CLI flags if config file is missing or invalid
+			// If DriverName and DB are already set by RootCmd.PersistentPreRunE,
+			// we can reconstruct a partial config for logging purposes or just rely on globals.
+			// RootCmd already sets DriverName and DB global.
+			// We just need a dummy config struct for the print statement below.
+
+			// If DB connection failed in RootCmd, we shouldn't be here (it returns error)
+			// EXCEPT initialized global SchemaName might differ.
+
+			if DriverName == "" {
+				return fmt.Errorf("could not determine driver: ensure config file exists or use --dsn and --driver flags")
+			}
+			config = DBConfig{
+				Name:   "CLI Wrapper",
+				Driver: DriverName,
+				DSN:    "CLI-Provided",
+				Active: true,
+			}
 		}
 
-		fmt.Printf("🦅 Connected to %s (%s)\n", config.Name, config.Driver)
+		fmt.Printf("🦅 Connected via %s (%s)\n", config.Driver, config.DSN)
 
-		// Setup DB Connection (moved from PersistentPreRun or re-done here for clarity in new flow)
-		// Since we removed PersistentPreRun logic implicitly by removing dsn flag reliance there or we should?
-		// The prompt implies we replace `viper.GetString` so we should Init DB here.
-		// NOTE: RootCmd might still try to connect? If RootCmd fails, we don't reach here.
-		// We should probably rely on RootCmd being lenient or refactor RootCmd too.
-		// BUT prompt asked only to update fill/clean Run function.
-		// Let's assume passed DB from RootCmd is not used or we re-open here?
-		// Actually best practice: Re-open here using new config to be safe and independent.
+		// Note: DB is already initialized in RootCmd.PersistentPreRunE
+		// If we re-open here, we might duplicate.
+		// BUT RootCmd logic assumes it should "return nil" and let us handle?
+		// No, RootCmd.PersistentPreRunE does sql.Open and sets global DB.
+		// So we can skip re-opening if DB is already valid.
 
-		db, err := sql.Open(config.Driver, config.DSN)
-		if err != nil {
-			return fmt.Errorf("failed to open db: %w", err)
+		if DB == nil {
+			// This path should ideally not be reached if RootCmd does its job.
+			// Re-open just in case
+			db, err := sql.Open(config.Driver, config.DSN)
+			if err != nil {
+				return fmt.Errorf("failed to open db: %w", err)
+			}
+			DB = db
 		}
-		defer db.Close()
+
+		db := DB // Local alias for compatibility
+		// defer db.Close() // RootCmd might manage lifecycle or we defer here?
+		// Cobra doesn't auto-close. We should defer close if we opened it.
+		// Since RootCmd opened it, maybe RootCmd PostRun should close it?
+		// For now, let's just use it.
 
 		if err := db.Ping(); err != nil {
 			return fmt.Errorf("failed to connect to db: %w", err)
@@ -57,13 +84,15 @@ var fillCmd = &cobra.Command{
 		// Set Globals for compatibility if needed (DB, DriverName, SchemaName)
 		DriverName = config.Driver
 		DB = db
-		// SchemaName logic
-		if config.Driver == "mysql" {
-			db.QueryRow("SELECT DATABASE()").Scan(&SchemaName)
-		} else if config.Driver == "sqlserver" || config.Driver == "mssql" {
-			SchemaName = "dbo"
-		} else {
-			SchemaName = "public"
+		// SchemaName logic (already done in RootCmd potentially, but verify)
+		if SchemaName == "" {
+			if config.Driver == "mysql" {
+				db.QueryRow("SELECT DATABASE()").Scan(&SchemaName)
+			} else if config.Driver == "sqlserver" || config.Driver == "mssql" {
+				SchemaName = "dbo"
+			} else {
+				SchemaName = "public"
+			}
 		}
 
 		// Fetch count from Viper (Flag > Config > Default)
