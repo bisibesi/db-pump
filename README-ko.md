@@ -126,25 +126,20 @@ db-pump.exe fill --dry-run
 `db-pump.yaml` 파일 없이 플래그를 통해 직접 연결 정보를 입력하여 실행할 수 있습니다.
 
 ```bash
-```bash
 # MySQL
 # DSN 형식: user:password@tcp(host:port)/dbname
-# JDBC 예시: jdbc:mysql://host:port/dbname
 ./db-pump fill --dsn "root:password@tcp(localhost:3306)/dbname" --driver mysql
 
 # PostgreSQL
 # DSN 형식: postgres://user:password@host:port/dbname?sslmode=disable
-# JDBC 예시: jdbc:postgresql://host:port/dbname
 ./db-pump fill --dsn "postgres://user:password@localhost:5432/dbname?sslmode=disable" --driver postgres
 
 # MSSQL (SQL Server)
 # DSN 형식: sqlserver://user:password@host:port?database=dbname
-# JDBC 예시: jdbc:sqlserver://host:port;databaseName=dbname
 ./db-pump fill --dsn "sqlserver://sa:password@localhost:1433?database=dbname" --driver sqlserver
 
 # Oracle
 # DSN 형식: oracle://user:password@host:port/service_name
-# JDBC 예시: jdbc:oracle:thin:@host:port:service_name
 ./db-pump fill --dsn "oracle://user:password@localhost:1521/service" --driver oracle
 ```
 

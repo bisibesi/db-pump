@@ -70,6 +70,7 @@ DB PUMP 🦅 - Database Data Generator & Pumper
 		}
 
 		DriverName = driver
+		dsn = connStr // Store it for subcommands
 
 		// Note: Actual DB connection is done in fill/clean commands now to support dynamic config?
 		// No, root command sets up global state usually, but `fill` command was refactored

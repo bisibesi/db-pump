@@ -16,9 +16,21 @@ var cleanCmd = &cobra.Command{
 	Short: "Clean all data from tables",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// New Config Logic
-		config, err := GetActiveDBConfig()
-		if err != nil {
-			return err
+		var config DBConfig
+		activeConfig, err := GetActiveDBConfig()
+		if err == nil {
+			config = *activeConfig
+		} else {
+			// Fallback to CLI flags
+			if DriverName == "" {
+				return fmt.Errorf("could not determine driver: ensure config file exists or use --dsn and --driver flags")
+			}
+			config = DBConfig{
+				Name:   "CLI Wrapper",
+				Driver: DriverName,
+				DSN:    dsn,
+				Active: true,
+			}
 		}
 
 		fmt.Printf("🦅 Connected to %s (%s)\n", config.Name, config.Driver)

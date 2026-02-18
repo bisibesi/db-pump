@@ -48,7 +48,7 @@ var fillCmd = &cobra.Command{
 			config = DBConfig{
 				Name:   "CLI Wrapper",
 				Driver: DriverName,
-				DSN:    "CLI-Provided",
+				DSN:    dsn,
 				Active: true,
 			}
 		}
