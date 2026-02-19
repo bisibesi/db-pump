@@ -24,7 +24,7 @@ To build the project from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/db-pump.git
+git clone https://github.com/bisibesi/db-pump.git
 cd db-pump
 
 # Build
