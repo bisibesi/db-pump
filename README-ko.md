@@ -24,7 +24,7 @@ DB Pump는 개발 및 테스트 목적으로 현실적인 더미 데이터를 �
 
 ```bash
 # 저장소 복제
-git clone https://github.com/your-repo/db-pump.git
+git clone https://github.com/bisibesi/db-pump.git
 cd db-pump
 
 # 빌드
